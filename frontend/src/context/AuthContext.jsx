@@ -55,10 +55,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('vedas_user', JSON.stringify(userData));
         return { success: true };
       }
-      return { success: false, error: res.data.message || 'Login failed' };
+      const errMsg = res.data.message;
+      return { success: false, error: typeof errMsg === 'string' ? errMsg : 'Login failed' };
     } catch (err) {
-      const msg =
+      const raw =
         err.response?.data?.message || err.response?.data?.error || 'Login failed';
+      const msg = typeof raw === 'string' ? raw : (raw?.message || JSON.stringify(raw));
       return { success: false, error: msg };
     }
   };
@@ -73,10 +75,12 @@ export const AuthProvider = ({ children }) => {
       if (res.data.success) {
         return { success: true, code: res.data.code, message: res.data.message };
       }
-      return { success: false, error: res.data.message || 'Registration failed' };
+      const errMsg = res.data.message;
+      return { success: false, error: typeof errMsg === 'string' ? errMsg : 'Registration failed' };
     } catch (err) {
-      const msg =
+      const raw =
         err.response?.data?.message || err.response?.data?.error || 'Registration failed';
+      const msg = typeof raw === 'string' ? raw : (raw?.message || JSON.stringify(raw));
       return { success: false, error: msg };
     }
   };
