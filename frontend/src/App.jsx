@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import AdminDashboard from './components/AdminDashboard'
 import AuthLayout from './layouts/AuthLayout'
 import { useAuth } from './context/AuthContext'
 
@@ -45,6 +46,11 @@ function PublicRoute({ children }) {
   return children;
 }
 
+function RoleBasedDashboard() {
+  const { user } = useAuth();
+  return user?.role === 'admin' ? <AdminDashboard /> : <Dashboard />;
+}
+
 function App() {
   return (
     <Router>
@@ -60,7 +66,7 @@ function App() {
             <AuthLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<Dashboard />} />
+          <Route index element={<RoleBasedDashboard />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
