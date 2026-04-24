@@ -1,0 +1,6 @@
+{
+  "include": ["./src/"],
+  "exclude": ["./node_modules/"],
+  "ext": "js",
+  "exec": "node ./src/server.js"
+}
