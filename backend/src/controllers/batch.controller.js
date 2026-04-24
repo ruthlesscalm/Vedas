@@ -2,6 +2,7 @@ import crypto from "crypto";
 import Batch from "../models/batch.model.js";
 import appError from "../errors/appError.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
+import Log from "../models/log.model.js";
 
 const sealBatch = asyncHandler(async (req, res) => {
   const batchId = req.body?.batchId;
@@ -76,4 +77,69 @@ const sealBatch = asyncHandler(async (req, res) => {
   });
 });
 
-export { sealBatch };
+const syncBatch = asyncHandler(async (req, res) => {
+  const { logs } = req.body;
+
+  if (!logs || !Array.isArray(logs)) {
+    throw new appError("Invalid logs format", "LOGS_INVALID", 400);
+  }
+
+  const processedLogs = [];
+
+  for (const log of logs) {
+    const { batchId, scannedBy, location, timeStamp, logHash } = log;
+
+    const batchExists = await Batch.exists({ batchId });
+    if (!batchExists) continue;
+
+    const dataToHash = `${batchId}:${scannedBy}:${location.lat},${location.lng}:${timeStamp}`;
+    const calculatedHash = crypto
+      .createHash("sha256")
+      .update(dataToHash)
+      .digest("hex");
+
+    const status = calculatedHash === logHash ? "Verified" : "Tampered";
+
+    processedLogs.push({
+      batchId,
+      scannedBy,
+      location,
+      timeStamp,
+      logHash,
+      status,
+    });
+  }
+
+  if (processedLogs.length > 0) {
+    await Log.insertMany(processedLogs);
+  }
+
+  return res.status(200).json({
+    success: true,
+    code: "SYNC_SUCCESS",
+    message: `Synced ${processedLogs.length} logs successfully`,
+  });
+});
+
+const getBatch = asyncHandler(async (req, res) => {
+  const { batchId } = req.params;
+
+  const batchInfo = await Batch.findOne({ batchId });
+
+  if (!batchInfo) {
+    throw new appError("Batch not found in ledger", "BATCH_NOT_FOUND", 404);
+  }
+
+  const history = await Log.find({ batchId }).sort({ timeStamp: 1 });
+
+  return res.status(200).json({
+    success: true,
+    code: "BATCH_FETCH_SUCCESS",
+    data: {
+      origin: batchInfo,
+      journey: history,
+    },
+  });
+});
+
+export { sealBatch, syncBatch, getBatch };
