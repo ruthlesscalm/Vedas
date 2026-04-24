@@ -14,12 +14,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(cookieParser());
+const allowedOrigins = [
+  "https://www.vedas.ruthlesscalm.me",
+  "https://vedas.ruthlesscalm.me",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin:
-      configs.NODE_ENV === "production"
-        ? "https://www.vedas.ruthlesscalm.me"
-        : "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
