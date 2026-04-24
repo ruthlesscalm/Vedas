@@ -15,7 +15,7 @@ const router = express.Router();
 
 router.post("/seal", userAccess, sealBatch);
 router.post("/sync", userAccess, syncBatch);
-router.get("/:batchID", userAccess, adminAccess, getBatch);
+router.get("/:batchId", userAccess, adminAccess, getBatch);
 router.get("/logs/:username", userAccess, logAccess, getMyLogs);
 
 export default router;
