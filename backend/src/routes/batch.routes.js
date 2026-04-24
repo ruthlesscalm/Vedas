@@ -5,7 +5,11 @@ import {
   syncBatch,
   getMyLogs,
 } from "../controllers/batch.controller.js";
-import { adminAccess, userAccess } from "../middlewares/auth.middleware.js";
+import {
+  adminAccess,
+  userAccess,
+  logAccess,
+} from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 

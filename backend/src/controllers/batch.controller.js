@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import Batch from "../models/batch.model.js";
+import User from "../models/user.model.js";
 import appError from "../errors/appError.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
 import Log from "../models/log.model.js";
@@ -145,7 +146,6 @@ const getBatch = asyncHandler(async (req, res) => {
 const getMyLogs = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
-  // We check if the user actually exists first
   const userExists = await User.findOne({ username });
   if (!userExists) {
     throw new appError("User not found", "USER_NOT_FOUND", 404);
