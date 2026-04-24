@@ -3,12 +3,16 @@ import User from "../models/user.model.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import configs from "../config/index.js";
+
+const isProduction = configs.NODE_ENV === "production";
 
 const normalize = (v) => v?.toLowerCase();
 const cookieOptions = {
   httpOnly: true,
-  secure: false,
-  sameSite: "lax",
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  domain: isProduction ? ".ruthlesscalm.me" : "localhost",
 };
 
 const authRegister = asyncHandler(async (req, res) => {
