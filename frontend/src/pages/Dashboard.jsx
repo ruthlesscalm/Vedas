@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   Package, MapPin, Send, ShieldCheck, ShieldAlert, ScanLine, CheckCircle2,
-  AlertCircle, Loader2, Box, Scale, ArrowRight, Trash2, Copy, QrCode, Camera
+  AlertCircle, Loader2, Box, Scale, ArrowRight, Trash2, Copy, QrCode, Camera,
+  Download, ImagePlus, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import jsPDF from 'jspdf';
 import { useAuth } from '../context/AuthContext';
 
 // ─── SHA-256 Hashing Utility ────────────────────────────────────────────────
@@ -42,7 +44,9 @@ const SealBatchTab = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
-  const [copying, setCopying] = useState(false);
+  const [copyingBatchId, setCopyingBatchId] = useState(false);
+  const [copyingHash, setCopyingHash] = useState(false);
+  const qrRef = useRef(null);
 
   // Keep items array in sync with itemCount
   useEffect(() => {
@@ -99,7 +103,7 @@ const SealBatchTab = () => {
       });
 
       if (res.data.success) {
-        setResult({ batchId, originHash });
+        setResult({ batchId, originHash, sealedAt: timeStamp });
       } else {
         throw new Error(res.data.message || 'Seal failed');
       }
@@ -115,8 +119,118 @@ const SealBatchTab = () => {
   const copyBatchId = () => {
     if (!result) return;
     navigator.clipboard.writeText(result.batchId);
-    setCopying(true);
-    setTimeout(() => setCopying(false), 2000);
+    setCopyingBatchId(true);
+    setTimeout(() => setCopyingBatchId(false), 2000);
+  };
+
+  const copyHash = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.originHash);
+    setCopyingHash(true);
+    setTimeout(() => setCopyingHash(false), 2000);
+  };
+
+  const downloadPDF = () => {
+    if (!result || !qrRef.current) return;
+
+    const canvas = qrRef.current.querySelector('canvas');
+    if (!canvas) return;
+
+    const qrDataUrl = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    // Title
+    pdf.setFillColor(15, 23, 42);
+    pdf.rect(0, 0, pageWidth, 50, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(24);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('VEDAS', pageWidth / 2, 22, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(148, 163, 184);
+    pdf.text('Verified Ecosystem for Decentralized Asset Security', pageWidth / 2, 32, { align: 'center' });
+    pdf.text('BATCH SEAL CERTIFICATE', pageWidth / 2, 42, { align: 'center' });
+
+    // QR Code
+    const qrSize = 60;
+    const qrX = (pageWidth - qrSize) / 2;
+    pdf.addImage(qrDataUrl, 'PNG', qrX, 60, qrSize, qrSize);
+
+    // Batch ID
+    let y = 132;
+    pdf.setTextColor(100, 116, 139);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('BATCH ID', 20, y);
+    y += 7;
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFontSize(11);
+    pdf.setFont('courier', 'normal');
+    pdf.text(result.batchId, 20, y);
+
+    // SHA-256 Hash
+    y += 14;
+    pdf.setTextColor(100, 116, 139);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('SHA-256 ORIGIN HASH', 20, y);
+    y += 7;
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFontSize(8);
+    pdf.setFont('courier', 'normal');
+    // Break hash into two lines if needed
+    const hash = result.originHash;
+    if (hash.length > 50) {
+      pdf.text(hash.substring(0, 50), 20, y);
+      y += 5;
+      pdf.text(hash.substring(50), 20, y);
+    } else {
+      pdf.text(hash, 20, y);
+    }
+
+    // Date of Sealing
+    y += 14;
+    pdf.setTextColor(100, 116, 139);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('DATE OF SEALING', 20, y);
+    y += 7;
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFontSize(11);
+    pdf.setFont('courier', 'normal');
+    const sealDate = new Date(result.sealedAt);
+    pdf.text(sealDate.toLocaleString('en-IN', {
+      dateStyle: 'full',
+      timeStyle: 'medium',
+    }), 20, y);
+
+    // Producer
+    y += 14;
+    pdf.setTextColor(100, 116, 139);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('PRODUCER', 20, y);
+    y += 7;
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFontSize(11);
+    pdf.setFont('courier', 'normal');
+    pdf.text(user.username, 20, y);
+
+    // Footer
+    y += 20;
+    pdf.setDrawColor(203, 213, 225);
+    pdf.line(20, y, pageWidth - 20, y);
+    y += 8;
+    pdf.setTextColor(148, 163, 184);
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('This document certifies the cryptographic seal of the above batch.', pageWidth / 2, y, { align: 'center' });
+    y += 5;
+    pdf.text('Verify integrity by comparing the SHA-256 hash with the original data.', pageWidth / 2, y, { align: 'center' });
+
+    pdf.save(`VEDAS-Batch-${result.batchId.slice(0, 8)}.pdf`);
   };
 
   const reset = () => {
@@ -152,7 +266,7 @@ const SealBatchTab = () => {
           </div>
 
           {/* QR Code – contains only the batchId */}
-          <div className="bg-white p-6 rounded-2xl flex justify-center items-center shadow-inner mb-8 relative z-10 max-w-[280px] mx-auto">
+          <div ref={qrRef} className="bg-white p-6 rounded-2xl flex justify-center items-center shadow-inner mb-4 relative z-10 max-w-[280px] mx-auto">
             <QRCodeCanvas
               value={result.batchId}
               size={200}
@@ -161,6 +275,15 @@ const SealBatchTab = () => {
             />
           </div>
 
+          {/* Download PDF Button */}
+          <button
+            onClick={downloadPDF}
+            className="w-full mb-6 py-3 bg-accent/20 text-accent hover:bg-accent hover:text-white rounded-xl font-bold transition-colors relative z-10 flex items-center justify-center gap-2 text-sm tracking-wider uppercase"
+            id="btn-download-pdf"
+          >
+            <Download size={18} /> Download QR Code
+          </button>
+
           <div className="space-y-4 relative z-10">
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col gap-2">
               <div className="flex justify-between items-center">
@@ -168,31 +291,48 @@ const SealBatchTab = () => {
                 <button
                   onClick={copyBatchId}
                   className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded transition-colors ${
-                    copying
+                    copyingBatchId
                       ? 'bg-accent/20 text-accent'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                   id="btn-copy-batchid"
                 >
-                  {copying ? 'COPIED!' : <><Copy size={12} /> COPY</>}
+                  {copyingBatchId ? 'COPIED!' : <><Copy size={12} /> COPY</>}
                 </button>
               </div>
               <p className="text-xs font-mono text-accent break-all">{result.batchId}</p>
             </div>
 
-            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2">SHA-256 Origin Hash</p>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">SHA-256 Cryptographic Hash</p>
+                <button
+                  onClick={copyHash}
+                  className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded transition-colors ${
+                    copyingHash
+                      ? 'bg-accent/20 text-accent'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                  id="btn-copy-hash"
+                >
+                  {copyingHash ? 'COPIED!' : <><Copy size={12} /> COPY</>}
+                </button>
+              </div>
               <p className="text-xs font-mono text-success break-all">{result.originHash}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 text-center">
                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Status</p>
                 <p className="text-sm font-bold text-success">Sealed</p>
               </div>
               <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 text-center">
                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Producer</p>
-                <p className="text-sm font-bold text-white">{user.username}</p>
+                <p className="text-sm font-bold text-white truncate">{user.username}</p>
+              </div>
+              <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 text-center">
+                <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Sealed</p>
+                <p className="text-xs font-bold text-white">{new Date(result.sealedAt).toLocaleDateString()}</p>
               </div>
             </div>
           </div>
@@ -334,106 +474,183 @@ const SealBatchTab = () => {
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SYNC BATCH Tab (Middleman QR Scanner)
+// Uses Html5Qrcode directly (not Html5QrcodeScanner) for full control over
+// camera vs image-upload modes and clean start/stop.
 // ═════════════════════════════════════════════════════════════════════════════
 const SyncBatchTab = () => {
   const { user } = useAuth();
-  const [scanResult, setScanResult] = useState(null);  // { status, batchId, message }
+  const [scanResult, setScanResult] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const scannerRef = useRef(null);
-  const readerRef = useRef(null);
+  const html5QrRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  const stopScanner = useCallback(() => {
-    if (scannerRef.current) {
-      scannerRef.current.clear().catch(() => {});
-      scannerRef.current = null;
+  const processScan = useCallback(async (batchId) => {
+    if (!batchId) {
+      setError('Invalid QR code: no batch ID found');
+      return;
+    }
+
+    // Validate UUID format — VEDAS batch IDs are generated via crypto.randomUUID()
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(batchId)) {
+      setScanResult({
+        status: 'error',
+        batchId,
+        message: 'Invalid QR Code — this is not a VEDAS registered batch.',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const location = await getLocation();
+      const scannedBy = user.username;
+      const timeStamp = new Date().toISOString();
+
+      const dataToHash = `${batchId}:${scannedBy}:${location.lat},${location.lng}:${timeStamp}`;
+      const logHash = await sha256(dataToHash);
+
+      const res = await axios.post('/api/batch/sync', {
+        logs: [
+          {
+            batchId,
+            scannedBy,
+            location,
+            timeStamp,
+            logHash,
+          },
+        ],
+      });
+
+      if (res.data.success && res.data.message && res.data.message.includes('Synced 0')) {
+        // Backend returns success but synced 0 logs — batch not found in DB
+        setScanResult({
+          status: 'error',
+          batchId,
+          message: 'Batch not found in the ledger. This QR code does not match any sealed batch.',
+        });
+      } else if (res.data.success) {
+        setScanResult({
+          status: 'success',
+          batchId,
+          message: res.data.message,
+        });
+      } else {
+        throw new Error(res.data.message || 'Sync failed');
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || err.message || 'Sync failed';
+      setScanResult({ status: 'error', batchId, message: msg });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [user]);
+
+  const stopCamera = useCallback(async () => {
+    if (html5QrRef.current) {
+      try {
+        const state = html5QrRef.current.getState();
+        // State 2 = SCANNING
+        if (state === 2) {
+          await html5QrRef.current.stop();
+        }
+      } catch {
+        // ignore
+      }
     }
     setScanning(false);
   }, []);
 
-  const startScanner = useCallback(async () => {
+  const startCamera = useCallback(async () => {
     setError('');
     setScanResult(null);
     setScanning(true);
 
-    // Dynamically import to avoid SSR issues
-    const { Html5QrcodeScanner } = await import('html5-qrcode');
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode');
 
-    // Small delay to ensure DOM element is rendered
-    await new Promise((r) => setTimeout(r, 100));
+      // Small delay to ensure DOM is ready
+      await new Promise((r) => setTimeout(r, 150));
 
-    if (!readerRef.current) return;
+      const el = document.getElementById('qr-reader');
+      if (!el) {
+        setScanning(false);
+        return;
+      }
 
-    const scanner = new Html5QrcodeScanner(
-      'qr-reader',
-      { qrbox: { width: 250, height: 250 }, fps: 5, aspectRatio: 1.0 },
-      false
-    );
+      // Clear any leftover content
+      el.innerHTML = '';
 
-    scannerRef.current = scanner;
+      const html5Qr = new Html5Qrcode('qr-reader');
+      html5QrRef.current = html5Qr;
 
-    scanner.render(
-      async (decodedText) => {
-        // Stop scanner immediately
-        stopScanner();
+      await html5Qr.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText) => {
+          await stopCamera();
+          await processScan(decodedText.trim());
+        },
+        () => {} // ignore scan errors
+      );
+    } catch (err) {
+      setError('Camera access denied or not available. Try uploading an image instead.');
+      setScanning(false);
+    }
+  }, [stopCamera, processScan]);
 
-        // The QR code contains only the batchId (UUID)
-        const batchId = decodedText.trim();
+  const handleImageUpload = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        if (!batchId) {
-          setError('Invalid QR code: no batch ID found');
-          return;
-        }
+    // Stop camera if running
+    await stopCamera();
+    setError('');
+    setScanResult(null);
+    setSubmitting(true);
 
-        setSubmitting(true);
-        try {
-          const location = await getLocation();
-          const scannedBy = user.username;
-          const timeStamp = new Date().toISOString();
+    try {
+      const { Html5Qrcode } = await import('html5-qrcode');
 
-          // Compute logHash matching backend's expected format
-          const dataToHash = `${batchId}:${scannedBy}:${location.lat},${location.lng}:${timeStamp}`;
-          const logHash = await sha256(dataToHash);
+      // Use a separate hidden element for file scanning since the main
+      // qr-reader div gets unmounted when camera state is false
+      let fileReaderEl = document.getElementById('qr-file-reader');
+      if (!fileReaderEl) {
+        fileReaderEl = document.createElement('div');
+        fileReaderEl.id = 'qr-file-reader';
+        fileReaderEl.style.display = 'none';
+        document.body.appendChild(fileReaderEl);
+      }
 
-          const res = await axios.post('/api/batch/sync', {
-            logs: [
-              {
-                batchId,
-                scannedBy,
-                location,
-                timeStamp,
-                logHash,
-              },
-            ],
-          });
+      const html5Qr = new Html5Qrcode('qr-file-reader');
+      const result = await html5Qr.scanFile(file, false);
+      html5Qr.clear();
 
-          if (res.data.success) {
-            setScanResult({
-              status: 'success',
-              batchId,
-              message: res.data.message,
-            });
-          } else {
-            throw new Error(res.data.message || 'Sync failed');
-          }
-        } catch (err) {
-          const msg =
-            err.response?.data?.message || err.message || 'Sync failed';
-          setScanResult({ status: 'error', batchId, message: msg });
-        } finally {
-          setSubmitting(false);
-        }
-      },
-      () => {} // suppress routine scan errors
-    );
-  }, [user, stopScanner]);
+      await processScan(result.trim());
+    } catch (err) {
+      setError('Could not read QR code from image. Make sure the image contains a valid QR code.');
+      setSubmitting(false);
+    }
+
+    // Reset file input so the same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [stopCamera, processScan]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
+      if (html5QrRef.current) {
+        try {
+          const state = html5QrRef.current.getState();
+          if (state === 2) {
+            html5QrRef.current.stop().catch(() => {});
+          }
+        } catch {
+          // ignore
+        }
       }
     };
   }, []);
@@ -473,6 +690,16 @@ const SyncBatchTab = () => {
             )}
           </div>
 
+          {/* Hidden file input for image upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="qr-image-input"
+          />
+
           {!scanning && !submitting ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="relative mb-6">
@@ -480,15 +707,24 @@ const SyncBatchTab = () => {
                 <QrCode size={64} className="relative z-10 text-slate-600" />
               </div>
               <p className="text-slate-400 text-sm mb-6 text-center">
-                Start the scanner to read a batch QR code
+                Use camera or upload a QR code image
               </p>
-              <button
-                onClick={startScanner}
-                className="bg-accent hover:bg-accent-hover text-white font-bold py-3 px-8 rounded-xl transition-all shadow-neon flex items-center gap-2 text-sm tracking-widest uppercase"
-                id="btn-start-scanner"
-              >
-                <Camera size={18} /> START SCANNER
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={startCamera}
+                  className="bg-accent hover:bg-accent-hover text-white font-bold py-3 px-6 rounded-xl transition-all shadow-neon flex items-center gap-2 text-sm tracking-widest uppercase"
+                  id="btn-start-scanner"
+                >
+                  <Camera size={18} /> CAMERA
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-2 text-sm tracking-widest uppercase border border-slate-600"
+                  id="btn-upload-image"
+                >
+                  <ImagePlus size={18} /> IMAGE
+                </button>
+              </div>
             </div>
           ) : submitting ? (
             <div className="flex flex-col items-center justify-center py-16">
@@ -496,18 +732,31 @@ const SyncBatchTab = () => {
               <p className="text-slate-400 text-sm font-medium">Processing scan…</p>
             </div>
           ) : (
-            <div ref={readerRef}>
+            <div>
               <div
                 id="qr-reader"
                 className="w-full rounded-2xl overflow-hidden border-2 border-slate-700/50"
+                style={{ minHeight: '280px' }}
               ></div>
-              <button
-                onClick={stopScanner}
-                className="w-full mt-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-700 rounded-xl transition-colors"
-                id="btn-stop-scanner"
-              >
-                Cancel
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={stopCamera}
+                  className="flex-1 py-2.5 text-sm text-slate-400 hover:text-white border border-slate-700 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  id="btn-stop-scanner"
+                >
+                  <X size={16} /> Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    stopCamera();
+                    fileInputRef.current?.click();
+                  }}
+                  className="flex-1 py-2.5 text-sm text-accent hover:text-white border border-accent/30 hover:bg-accent/20 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  id="btn-upload-while-scanning"
+                >
+                  <ImagePlus size={16} /> Upload Image
+                </button>
+              </div>
             </div>
           )}
         </div>
