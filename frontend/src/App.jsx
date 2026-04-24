@@ -1,51 +1,71 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { Zap, Globe, Truck } from 'lucide-react'
-import ManufacturerDashboard from './pages/ManufacturerDashboard'
-import DriverScan from './pages/DriverScan'
-import ClientTrustDashboard from './pages/ClientTrustDashboard'
-import ServerTrustDashboard from './pages/ServerTrustDashboard'
-import RoleSelection from './pages/RoleSelection'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import PortalLayout from './layouts/PortalLayout'
+import Dashboard from './pages/Dashboard'
+import AuthLayout from './layouts/AuthLayout'
+import { useAuth } from './context/AuthContext'
 
-// Define the portal configurations
-const clientLinks = [
-  { to: '/client/crypto', icon: Zap, label: 'Crypto' },
-  { to: '/client/trust', icon: Globe, label: 'Trust' },
-];
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
 
-const serverLinks = [
-  { to: '/server/scan', icon: Truck, label: 'Ghost-Log' },
-  { to: '/server/trust', icon: Globe, label: 'Trust' },
-];
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm font-medium tracking-widest uppercase">Initializing…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="w-10 h-10 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<RoleSelection />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        {/* Client Portal Routes */}
-        <Route path="/client" element={<PortalLayout portalName="Client" links={clientLinks} />}>
-          <Route path="crypto" element={<ManufacturerDashboard />} />
-          <Route path="trust" element={<ClientTrustDashboard />} />
+        <Route path="/login" element={
+          <PublicRoute><Login /></PublicRoute>
+        } />
+        <Route path="/register" element={
+          <PublicRoute><Register /></PublicRoute>
+        } />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <AuthLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
         </Route>
-
-        {/* Server Portal Routes */}
-        <Route path="/server" element={<PortalLayout portalName="Server" links={serverLinks} />}>
-          <Route path="scan" element={<DriverScan />} />
-          <Route path="trust" element={<ServerTrustDashboard />} />
-        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   )
 }
 
 export default App
-
-
-

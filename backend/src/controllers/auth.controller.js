@@ -140,6 +140,8 @@ const authLogin = asyncHandler(async (req, res) => {
       success: true,
       code: "AUTH_LOGIN_SUCCESS",
       message: "User loggined successfully",
+      username: existingUser.username,
+      role: existingUser.role,
     });
 });
 
@@ -177,6 +179,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         success: true,
         code: "AUTH_TOKEN_REFRESH_SUCCESS",
         message: "Access Token refreshed successfully",
+        username: decoded.username,
+        role: decoded.role,
       });
   } catch (err) {
     if (err.name === "JsonWebTokenError") {

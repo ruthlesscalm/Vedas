@@ -16,7 +16,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
-    
+
     const result = await login(email, password);
     if (result.success) {
       navigate('/');
@@ -34,25 +34,25 @@ const Login = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-900/10 blur-[120px] rounded-full animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full relative z-10"
       >
         <div className="text-center mb-10">
-          <Link to="/" className="inline-flex bg-accent/10 border border-accent/30 shadow-neon p-4 rounded-2xl mb-6 hover:scale-105 transition-transform">
+          <div className="inline-flex bg-accent/10 border border-accent/30 shadow-neon p-4 rounded-2xl mb-6 hover:scale-105 transition-transform">
             <Shield className="text-accent w-10 h-10" />
-          </Link>
+          </div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight mb-3">Authorization</h1>
           <p className="text-slate-400 text-lg">Secure access to VEDAS cryptographic portal</p>
         </div>
 
-        <form onSubmit={handleLogin} className="glass-panel p-10 rounded-[2.5rem] space-y-6 relative border-slate-700/30">
+        <form onSubmit={handleLogin} className="glass-panel p-10 rounded-[2.5rem] space-y-6 relative border-slate-700/30" id="login-form">
           <div className="absolute top-0 right-0 w-40 h-40 bg-accent/5 blur-3xl rounded-full -mr-20 -mt-20"></div>
-          
+
           <AnimatePresence>
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -72,6 +72,7 @@ const Login = () => {
                 <input
                   type="email"
                   required
+                  id="input-email"
                   className="w-full bg-slate-900/40 border border-slate-700/50 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-accent focus:bg-slate-900/60 transition-all font-medium"
                   placeholder="name@company.com"
                   value={email}
@@ -87,6 +88,7 @@ const Login = () => {
                 <input
                   type="password"
                   required
+                  id="input-password"
                   className="w-full bg-slate-900/40 border border-slate-700/50 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-accent focus:bg-slate-900/60 transition-all font-medium"
                   placeholder="••••••••"
                   value={password}
@@ -99,6 +101,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={isSubmitting}
+            id="btn-login"
             className="w-full bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold py-5 rounded-2xl transition-all shadow-neon flex justify-center items-center gap-2 relative z-10 text-sm tracking-widest uppercase mt-4 overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
@@ -111,14 +114,14 @@ const Login = () => {
 
           <div className="text-center pt-4 relative z-10 border-t border-slate-800/50">
             <p className="text-slate-400 text-sm">
-              Unauthorized access?{' '}
-              <Link to="/register" className="text-accent hover:text-white font-bold transition-colors">Request Node Access</Link>
+              No account?{' '}
+              <Link to="/register" className="text-accent hover:text-white font-bold transition-colors">Register Here</Link>
             </p>
           </div>
         </form>
 
         <p className="text-center mt-8 text-[10px] text-slate-600 font-bold tracking-widest uppercase">
-          VEDAS v2.4 · Quantum-Resistant Protocol
+          VEDAS · Verified Ecosystem for Decentralized Asset Security
         </p>
       </motion.div>
     </div>
