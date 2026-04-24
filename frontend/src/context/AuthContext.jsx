@@ -1,12 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-// All requests include cookies
-axios.defaults.withCredentials = true;
+
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -22,7 +21,7 @@ export const AuthProvider = ({ children }) => {
 
       // Try refreshing the access token to validate session
       try {
-        const res = await axios.post('/api/auth/refresh');
+        const res = await api.post('/auth/refresh');
         if (res.data.success) {
           const userData = {
             username: res.data.username,
@@ -45,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email, password });
       if (res.data.success) {
         const userData = {
           username: res.data.username,
@@ -67,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const res = await axios.post('/api/auth/register', {
+      const res = await api.post('/auth/register', {
         username,
         email,
         password,
@@ -87,7 +86,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await api.post('/auth/logout');
     } catch {
       // Even if the request fails, clear local state
     }
