@@ -59,8 +59,8 @@ const sealBatch = asyncHandler(async (req, res) => {
     batchId,
     producerId,
     items,
-    location: locationObj,
-    timeStamp,
+    originLocation: locationObj,
+    timestamp: timeStamp,
     originHash,
   });
 
@@ -142,4 +142,22 @@ const getBatch = asyncHandler(async (req, res) => {
   });
 });
 
-export { sealBatch, syncBatch, getBatch };
+const getMyLogs = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  // We check if the user actually exists first
+  const userExists = await User.findOne({ username });
+  if (!userExists) {
+    throw new appError("User not found", "USER_NOT_FOUND", 404);
+  }
+
+  const logs = await Log.find({ scannedBy: username }).sort({ timeStamp: -1 });
+
+  return res.status(200).json({
+    success: true,
+    count: logs.length,
+    data: logs,
+  });
+});
+
+export { sealBatch, syncBatch, getBatch, getMyLogs };

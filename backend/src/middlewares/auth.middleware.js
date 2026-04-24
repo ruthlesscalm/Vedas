@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import appError from "../errors/appError.js";
+import asyncHandler from "../utils/asyncHandler.utils.js";
 
-const userAccess = (req, res, next) => {
+const userAccess = asyncHandler(async (req, res, next) => {
   const accessToken = req.cookies?.accessToken;
 
   if (!accessToken || typeof accessToken !== "string") {
@@ -26,9 +27,9 @@ const userAccess = (req, res, next) => {
   }
 
   next();
-};
+});
 
-const adminAccess = (req, res, next) => {
+const adminAccess = asyncHandler(async (req, res, next) => {
   const user = req.user;
 
   if (user.role !== "admin") {
@@ -39,6 +40,13 @@ const adminAccess = (req, res, next) => {
     );
   }
   next();
-};
+});
 
-export { userAccess, adminAccess };
+const logAccess = asyncHandler(async (req, res, next) => {
+  if (req.user.username !== req.params.username) {
+    throw new appError("Unauthorized access to logs", "FORBIDDEN", 403);
+  }
+  next();
+});
+
+export { userAccess, adminAccess, logAccess };
