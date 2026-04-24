@@ -6,11 +6,10 @@ export const errorHandler = (err, req, res, next) => {
     const duplicateField = Object.keys(err.keyValue)[0];
 
     if (duplicateField === "email") {
-      return res.status(200).json({
+      return res.status(409).json({
         success: true,
-        code: "AUTH_REGISTER_SUCCESS",
-        message:
-          "A link to complete your registration has been sent to your email address.",
+        code: "AUTH_USER_ALREADY_REGISTERED",
+        message: "User is already registered",
       });
     }
     if (duplicateField === "username") {

@@ -50,9 +50,8 @@ const authRegister = asyncHandler(async (req, res) => {
   if (existingUser?.email === email) {
     return res.status(200).json({
       success: true,
-      code: "AUTH_REGISTER_SUCCESS",
-      message:
-        "A link to complete your registration has been sent to your email address.",
+      code: "AUTH_USER_ALREADY_REGISTERED",
+      message: "User is already registered",
     });
   }
   if (existingUser?.username === username) {
@@ -68,12 +67,12 @@ const authRegister = asyncHandler(async (req, res) => {
     email: normalisedEmail,
     username: normalisedUsername,
     password: hashedPassword,
+    role: "user",
   });
   return res.status(200).json({
     success: true,
     code: "AUTH_REGISTER_SUCCESS",
-    message:
-      "A link to complete your registration has been sent to your email address.",
+    message: "You are successfully registered",
   });
 });
 
