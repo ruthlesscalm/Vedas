@@ -59,7 +59,7 @@ const Login = () => {
                 className="bg-danger/10 border border-danger/30 p-4 rounded-xl flex items-center gap-3 text-danger text-sm font-medium"
               >
                 <AlertCircle size={18} className="flex-shrink-0" />
-                {error}
+                {typeof error === 'string' ? error : (error?.message || 'An error occurred')}
               </motion.div>
             )}
           </AnimatePresence>
