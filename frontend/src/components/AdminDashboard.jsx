@@ -4,7 +4,7 @@ import {
   Loader2, ArrowRight, Clock, User, Hash, Route
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../utils/api';
 
 const AdminDashboard = () => {
   const [batchId, setBatchId] = useState('');
@@ -21,7 +21,7 @@ const AdminDashboard = () => {
     setBatchData(null);
 
     try {
-      const res = await axios.get(`/api/batch/${batchId.trim()}`);
+      const res = await api.get(`/batch/${batchId.trim()}`);
       if (res.data.success) {
         setBatchData(res.data.data);
       } else {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollText, MapPin, ShieldCheck, ShieldAlert, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const MyLogs = () => {
@@ -14,7 +14,7 @@ const MyLogs = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`/api/batch/logs/${user.username}`);
+      const res = await api.get(`/batch/logs/${user.username}`);
       if (res.data.success) {
         setLogs(res.data.data);
       } else {

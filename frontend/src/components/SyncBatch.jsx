@@ -4,7 +4,7 @@ import {
   AlertCircle, QrCode, Camera, ImagePlus, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { sha256, UUID_REGEX } from '../utils/crypto';
 import { getLocation } from '../utils/geolocation';
@@ -42,7 +42,7 @@ const SyncBatch = () => {
       const dataToHash = `${batchId}:${scannedBy}:${location.lat},${location.lng}:${timeStamp}`;
       const logHash = await sha256(dataToHash);
 
-      const res = await axios.post('/api/batch/sync', {
+      const res = await api.post('/batch/sync', {
         logs: [{ batchId, scannedBy, location, timeStamp, logHash }],
       });
 

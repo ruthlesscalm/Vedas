@@ -5,7 +5,7 @@ import {
   ArrowRight, Trash2, Copy, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../utils/api';
 import jsPDF from 'jspdf';
 import { useAuth } from '../context/AuthContext';
 import { sha256 } from '../utils/crypto';
@@ -64,7 +64,7 @@ const SealBatch = () => {
       const dataToHash = `${batchId}:${producerId}:${itemsString}:${location.lat},${location.lng}:${timeStamp}`;
       const originHash = await sha256(dataToHash);
 
-      const res = await axios.post('/api/batch/seal', {
+      const res = await api.post('/batch/seal', {
         batchId,
         producerId,
         items: formattedItems,
