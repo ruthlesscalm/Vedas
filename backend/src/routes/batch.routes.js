@@ -3,6 +3,6 @@ import { sealBatch } from "../controllers/batch.controller.js";
 
 const router = express.Router();
 
-router.get("/", sealBatch);
+router.post("/seal", sealBatch);
 
 export default router;
