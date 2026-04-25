@@ -9,7 +9,15 @@ export default defineConfig({
     tailwind(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+      includeAssets: [
+        "favicon.ico",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "apple-touch-icon.png",
+      ],
+      devOptions: {
+        enabled: true, // Enable PWA in dev mode for testing
+      },
       workbox: {
         // Cache all JS/CSS/HTML assets in the build output
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
@@ -51,6 +59,7 @@ export default defineConfig({
         name: "VEDAS: Secure Logistics Tracker",
         short_name: "VEDAS",
         description: "Verified Eco-system for Decentralized Asset Security",
+        id: "/",
         theme_color: "#0f172a",
         background_color: "#0f172a",
         display: "standalone",
@@ -65,19 +74,19 @@ export default defineConfig({
             purpose: "any",
           },
           {
-            src: "pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "maskable",
-          },
-          {
             src: "pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "pwa-512x512.png",
+            src: "pwa-maskable-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "pwa-maskable-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
