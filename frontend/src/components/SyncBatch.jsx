@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ShieldCheck, ShieldAlert, ScanLine, CheckCircle2,
-  AlertCircle, QrCode, Camera, ImagePlus, X
+  AlertCircle, QrCode, Camera, ImagePlus, X, CloudOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { sha256, UUID_REGEX } from '../utils/crypto';
 import { getLocation } from '../utils/geolocation';
+import { saveOfflineLog } from '../utils/db';
 
 const SyncBatch = () => {
   const { user } = useAuth();
@@ -34,13 +35,14 @@ const SyncBatch = () => {
     }
 
     setSubmitting(true);
+    let location, scannedBy, timeStamp, logHash;
     try {
-      const location = await getLocation();
-      const scannedBy = user.username;
-      const timeStamp = new Date().toISOString();
+      location = await getLocation();
+      scannedBy = user.username;
+      timeStamp = new Date().toISOString();
 
       const dataToHash = `${batchId}:${scannedBy}:${location.lat},${location.lng}:${timeStamp}`;
-      const logHash = await sha256(dataToHash);
+      logHash = await sha256(dataToHash);
 
       const res = await api.post('/batch/sync', {
         logs: [{ batchId, scannedBy, location, timeStamp, logHash }],
@@ -58,11 +60,20 @@ const SyncBatch = () => {
         throw new Error(res.data.message || 'Sync failed');
       }
     } catch (err) {
-      setScanResult({
-        status: 'error',
-        batchId,
-        message: err.response?.data?.message || err.message || 'Sync failed',
-      });
+      if (!window.navigator.onLine && scannedBy) {
+        await saveOfflineLog({ batchId, scannedBy, location, timeStamp, logHash });
+        setScanResult({
+          status: 'offline',
+          batchId,
+          message: 'Saved locally. Will sync automatically when back online.',
+        });
+      } else {
+        setScanResult({
+          status: 'error',
+          batchId,
+          message: err.response?.data?.message || err.message || 'Sync failed',
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -302,6 +313,50 @@ const SyncBatch = () => {
                   id="btn-retry-scan"
                 >
                   Try Again
+                </button>
+              </motion.div>
+            ) : scanResult.status === 'offline' ? (
+              <motion.div
+                key="offline"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-6 shadow-[0_0_20px_rgba(245,158,11,0.15)] backdrop-blur-md relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
+                <div className="flex items-center gap-3 text-amber-400 mb-6 relative z-10">
+                  <div className="bg-amber-500/20 p-2 rounded-full border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                    <CloudOff size={24} />
+                  </div>
+                  <h3 className="text-xl font-bold">Saved Locally</h3>
+                </div>
+
+                <div className="space-y-4 relative z-10">
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Batch ID</p>
+                    <p className="text-white font-mono text-sm break-all">{scanResult.batchId}</p>
+                  </div>
+                  <div className="bg-slate-900/50 p-4 rounded-xl border border-amber-500/20">
+                    <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Status</p>
+                    <p className="text-amber-400 text-sm font-medium">{scanResult.message}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Scanned By</p>
+                      <p className="text-xs text-white font-bold">{user.username}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Mode</p>
+                      <p className="text-xs font-bold text-amber-400">⏳ Offline Queue</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => { setScanResult(null); setError(''); }}
+                  className="mt-6 w-full py-3 bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white rounded-xl font-bold transition-colors relative z-10"
+                  id="btn-scan-next-offline"
+                >
+                  Scan Next Item
                 </button>
               </motion.div>
             ) : (
