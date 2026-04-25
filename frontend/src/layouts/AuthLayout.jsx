@@ -2,6 +2,8 @@ import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Shield, LogOut, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import OfflineSyncBanner from '../components/OfflineSyncBanner';
+import PWAInstallPrompt from '../components/PWAInstallPrompt';
 
 const AuthLayout = () => {
   const { user, logout } = useAuth();
@@ -52,6 +54,12 @@ const AuthLayout = () => {
       <main className="max-w-7xl mx-auto pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <Outlet />
       </main>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
+      {/* Offline Sync Banner */}
+      <OfflineSyncBanner />
     </div>
   );
 };
