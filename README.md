@@ -167,7 +167,8 @@ npm run build          # outputs to dist/
 |---|---|
 | Frontend | [`vedas.ruthlesscalm.me`](https://vedas.ruthlesscalm.me) |
 | Backend | `api.vedas.ruthlesscalm.me` |
-check heatlth at [`api.vedas.ruthlesscalm.me/health`](https://vedas.api.ruthlesscalm.me/health)
+
+check backend heatlth at [`api.vedas.ruthlesscalm.me/health`](https://vedas.api.ruthlesscalm.me/health)
 
 ---
 
